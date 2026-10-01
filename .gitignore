@@ -3,3 +3,4 @@ env/
 
 # Datos locales
 data/
+_pycache__/
