@@ -148,18 +148,11 @@ def _normalizar_numero_articulo(numero: str) -> str:
 
 
 def extraer_articulos_citados(texto_completo: str):
-    """
-    Devuelve una lista de dicts {"numero", "norma", "inicio", "fin"} con
-    cada artículo del Código Penal citado en el texto, sin duplicados de
-    (número normalizado). "inicio"/"fin" son las posiciones del match en
-    texto_completo — se usan para recortar la ventana de contexto de esa
-    cita puntual en extraer_ventana_hecho().
-    """
     encontrados = []
     vistos = set()
-
     for match in PATRON_ARTICULO.finditer(texto_completo):
         numeros_raw = match.group("numeros")
+        offset_numeros = match.start("numeros")  # posición absoluta donde arranca el grupo "numeros"
         for numero_match in re.finditer(r"\d+\s*(?:bis|ter|quater|quinquies)?", numeros_raw, re.IGNORECASE):
             numero = _normalizar_numero_articulo(numero_match.group(0))
             if numero in vistos:
@@ -168,10 +161,9 @@ def extraer_articulos_citados(texto_completo: str):
             encontrados.append({
                 "numero": numero,
                 "norma": "Codigo Penal",
-                "inicio": match.start(),
-                "fin": match.end(),
+                "inicio": offset_numeros + numero_match.start(),
+                "fin": offset_numeros + numero_match.end(),
             })
-
     return encontrados
 
 
@@ -187,8 +179,19 @@ def extraer_ventana_hecho(texto_completo: str, inicio: int, fin: int) -> str:
     """
     desde = max(0, inicio - VENTANA_ANTES)
     hasta = min(len(texto_completo), fin + VENTANA_DESPUES)
-    ventana = texto_completo[desde:hasta]
 
+    # Si dentro del rango "después" de la cita aparece el inicio del
+    # trámite del recurso o de la fundamentación legal, cortar ahí en
+    # vez de en el límite fijo de caracteres — ese texto es boilerplate
+    # procesal, no parte del hecho que motivó la cita.
+    fragmento_despues = texto_completo[fin:hasta]
+    corte_recurso = PATRON_INICIO_RECURSO.search(fragmento_despues)
+    corte_fundamentos = PATRON_FIN_HECHOS.search(fragmento_despues)
+    limites = [m.start() for m in (corte_recurso, corte_fundamentos) if m]
+    if limites:
+        hasta = fin + min(limites)
+
+    ventana = texto_completo[desde:hasta]
     ventana = PATRON_ARTICULO.sub("", ventana)
     ventana = re.sub(r"\s+", " ", ventana).strip()
     return ventana

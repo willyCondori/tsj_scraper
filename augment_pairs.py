@@ -38,7 +38,7 @@ random.seed(42)  # reproducible: el undersampling y la elección de variantes/ne
 # 90 artículos con 1 solo ejemplo).
 OBJETIVO_MINIMO_POR_ARTICULO = 15    # se intenta acercar a esto vía parafraseo, para artículos escasos
 MAXIMO_VARIANTES_POR_EJEMPLO = 8     # techo absoluto, para no generar variantes casi idénticas en exceso
-MAXIMO_ORIGINALES_POR_ARTICULO = 300  # artículos con más originales que esto se recortan (undersampling)
+MAXIMO_ORIGINALES_POR_ARTICULO = 800  # artículos con más originales que esto se recortan (undersampling)
 
 CATEGORIAS_DELITO = {
     "ROBO": ["robo", "asalto", "atraco"],

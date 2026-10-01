@@ -1,11 +1,7 @@
-import json
-from collections import Counter
+# ¿busqueda_avanzada acepta filtrar por nodo del árbol?
+import requests, json
+from scraper_api import HEADERS
 
-conteo = Counter()
-with open("data/processed/pares_entrenamiento.jsonl", encoding="utf-8") as f:
-    for linea in f:
-        p = json.loads(linea)
-        if p["articulo"].startswith("308"):
-            conteo[p["articulo"]] += 1
-
-print(conteo)
+body = {"idMateria": 1, "idArbol": 1791}  # ajusta el nombre del parámetro según lo que aceptes probar
+r = requests.post('https://apigenesis.tsj.bo/api/v1/resoluciones/busqueda_avanzada', headers=HEADERS, json=body)
+print(r.status_code, r.text[:500])
