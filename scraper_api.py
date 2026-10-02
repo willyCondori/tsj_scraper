@@ -17,10 +17,12 @@ Uso:
 import json
 import os
 import time
+import argparse
+from pathlib import Path
 
 import requests
 
-OUT_DIR = os.path.join("data", "raw")
+OUT_DIR = str(Path(__file__).resolve().parent / "data" / "raw")
 
 BASE_URL = "https://apigenesis.tsj.bo/api/v1"
 URL_BUSQUEDA = f"{BASE_URL}/resoluciones/busqueda_avanzada"
@@ -70,13 +72,24 @@ def cuerpo_busqueda(page: int, todas_estas_palabras: str = None) -> dict:
 
 
 def ya_descargado(id_resolucion) -> bool:
-    return os.path.exists(os.path.join(OUT_DIR, f"{id_resolucion}.json"))
+    path = Path(OUT_DIR) / f"{id_resolucion}.json"
+    if not path.exists():
+        return False
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return str(data.get("id")) == str(id_resolucion) and bool(data.get("contenido"))
+    except (ValueError, OSError):
+        return False
 
 
 def guardar_resolucion(id_resolucion, data: dict):
     path = os.path.join(OUT_DIR, f"{id_resolucion}.json")
-    with open(path, "w", encoding="utf-8") as f:
+    if str(data.get("id")) != str(id_resolucion) or not data.get("contenido"):
+        raise ValueError(f"Detalle inválido: {id_resolucion}")
+    temp = path + ".tmp"
+    with open(temp, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+    os.replace(temp, path)
 
 
 def _post_con_reintentos(url, headers, json_body, intentos=4):
@@ -90,7 +103,7 @@ def _post_con_reintentos(url, headers, json_body, intentos=4):
     for intento in range(1, intentos + 1):
         try:
             resp = requests.post(url, headers=headers, json=json_body, timeout=30)
-            if resp.status_code >= 500 and intento < intentos:
+            if (resp.status_code >= 500 or resp.status_code == 429) and intento < intentos:
                 print(f"  [!] Error {resp.status_code} del servidor, reintentando en {espera}s...")
                 time.sleep(espera)
                 espera *= 2
@@ -111,7 +124,7 @@ def _get_con_reintentos(url, headers, intentos=4):
     for intento in range(1, intentos + 1):
         try:
             resp = requests.get(url, headers=headers, timeout=30)
-            if resp.status_code >= 500 and intento < intentos:
+            if (resp.status_code >= 500 or resp.status_code == 429) and intento < intentos:
                 print(f"  [!] Error {resp.status_code} del servidor, reintentando en {espera}s...")
                 time.sleep(espera)
                 espera *= 2
@@ -174,7 +187,7 @@ def main(max_paginas: int = None):
             time.sleep(DELAY_ENTRE_REQUESTS)
             try:
                 resultado = obtener_pagina_listado(page)
-            except requests.RequestException as e:
+            except (requests.RequestException, ValueError, KeyError) as e:
                 total_errores += 1
                 print(f"  [!] No se pudo obtener la página {page} tras varios reintentos: {e}")
                 print(f"  [!] Se salta esta página. Podés volver a correr el script luego para reintentarla.")
@@ -199,7 +212,7 @@ def main(max_paginas: int = None):
                 total_descargadas += 1
                 print(f"  [OK] {id_resolucion} - {data_resolucion.get('nro_resolucion')}")
 
-            except requests.RequestException as e:
+            except (requests.RequestException, ValueError, KeyError) as e:
                 total_errores += 1
                 print(f"  [!] Error en {id_resolucion}: {e}")
 
@@ -211,7 +224,9 @@ def main(max_paginas: int = None):
 
 
 if __name__ == "__main__":
-    # Ya confirmado que funciona con datos reales — corrida completa.
-    # Es reanudable: si se corta, volvé a correr este mismo script y
-    # sigue donde quedó (salta lo que ya está en data/raw/).
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--out-dir", default=OUT_DIR)
+    parser.add_argument("--max-pages", type=int)
+    args = parser.parse_args()
+    OUT_DIR = args.out_dir
+    main(max_paginas=args.max_pages)

@@ -1,118 +1,52 @@
-"""
-Paso 4 — Exportar el dataset a Excel para revisión humana.
-
-Un .jsonl es lo que usa el código para entrenar, pero para que vos (o un
-abogado que te ayude a validar) revisen el dataset a ojo, Excel es mucho
-más cómodo. Este script arma un único .xlsx con varias hojas:
-
-  - "Pares_originales"   -> los pares (hechos, artículo) tal cual salieron
-                            del scraping, sin aumentar.
-  - "Pares_aumentados"   -> incluye las variantes parafraseadas y marca
-                            con la columna "tipo" cuál es cuál.
-  - "Sinonimos"          -> el diccionario de sinónimos jurídicos usado,
-                            en formato tabla (para que sea fácil de
-                            ampliar/corregir sin tocar JSON a mano).
-  - "Estadisticas"       -> conteo de pares por artículo (para detectar
-                            desbalance: artículos con 1 solo ejemplo vs.
-                            artículos con cientos).
-
-Requiere: pandas, openpyxl (ver requirements.txt)
-
-Uso:
-    python export_excel.py
-"""
-
+"""Exportar las salidas de un run para revisión; no transforma etiquetas."""
+import argparse
 import json
-import os
+import hashlib
+from collections import defaultdict
+from pathlib import Path
+from dataset_utils import read_jsonl
 
-import pandas as pd
+def export(directory):
+    import pandas as pd
+    directory=Path(directory)
+    originals=read_jsonl(directory/'pares_entrenamiento.jsonl')
+    augmented=read_jsonl(directory/'pares_aumentados.jsonl')
+    full_review=read_jsonl(directory/'pares_revision.jsonl')
+    groups=defaultdict(list)
+    for row in full_review:groups[row.get('motivo')].append(row)
+    for group in groups.values():group.sort(key=lambda r:hashlib.sha256(json.dumps(r,ensure_ascii=False).encode('utf-8')).hexdigest())
+    review=[];index=0
+    while len(review)<1000:
+        added=False
+        for group in groups.values():
+            if index<len(group):review.append(group[index]);added=True
+            if len(review)==1000:break
+        if not added:break
+        index+=1
+    frame=pd.DataFrame(augmented)
+    if frame.empty: raise ValueError('Run sin pares entrenables; revisar pares_revision.jsonl')
+    stats=frame.groupby(['articulo','split'],dropna=False).agg(filas=('hechos','size'),
+        resoluciones=('fuente_id','nunique'),textos=('hechos','nunique')).reset_index()
+    output=directory/'dataset_completo.xlsx'
+    if output.exists(): raise FileExistsError('El Excel ya existe; usa otro run o renombra el archivo para conservarlo')
+    with pd.ExcelWriter(output,engine='openpyxl') as writer:
+        for name,rows in [('Pares_originales',originals),('Pares_aumentados',augmented),('Muestra_revision',review)]:
+            df=pd.DataFrame(rows)
+            if 'articulo' in df: df['articulo']=df['articulo'].astype(str)
+            for column in df:
+                df[column]=df[column].map(lambda v:json.dumps(v,ensure_ascii=False) if isinstance(v,(list,dict)) else v)
+            df.to_excel(writer,sheet_name=name,index=False)
+        stats.to_excel(writer,sheet_name='Estadisticas',index=False)
+        writer.sheets['Estadisticas']['G1']='Revisión';writer.sheets['Estadisticas']['H1']='Filas'
+        writer.sheets['Estadisticas']['G2']='Total en pares_revision.jsonl';writer.sheets['Estadisticas']['H2']=len(full_review)
+        writer.sheets['Estadisticas']['G3']='Muestra en este Excel';writer.sheets['Estadisticas']['H3']=len(review)
+        for ws in writer.book:
+            ws.freeze_panes='A2';ws.auto_filter.ref=ws.dimensions
+            for col in ws.columns:
+                header=col[0].value
+                ws.column_dimensions[col[0].column_letter].width=90 if header=='hechos' else (65 if header=='articulo_texto' else 24)
+    print(output.resolve())
+    return output
 
-PARES_ORIGINALES_PATH = os.path.join("data", "processed", "pares_entrenamiento.jsonl")
-PARES_AUMENTADOS_PATH = os.path.join("data", "processed", "pares_aumentados.jsonl")
-SINONIMOS_PATH = os.path.join("data", "reference", "sinonimos_juridicos.json")
-OUT_XLSX = os.path.join("data", "processed", "dataset_completo.xlsx")
-
-
-def cargar_jsonl_como_df(path: str) -> pd.DataFrame:
-    filas = []
-    with open(path, "r", encoding="utf-8") as f:
-        for linea in f:
-            filas.append(json.loads(linea))
-    df = pd.DataFrame(filas)
-    if "negativos_dificiles" in df.columns:
-        df["negativos_dificiles"] = df["negativos_dificiles"].apply(
-            lambda x: ", ".join(x) if isinstance(x, list) else x
-        )
-    return df
-
-
-def cargar_sinonimos_como_df(path: str) -> pd.DataFrame:
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    data.pop("_comentario", None)
-
-    filas = []
-    for termino_canonico, variantes in data.items():
-        filas.append({
-            "termino_canonico": termino_canonico,
-            "variantes": ", ".join(variantes),
-            "cantidad_variantes": len(variantes),
-        })
-    return pd.DataFrame(filas)
-
-
-def calcular_estadisticas(df_aumentado: pd.DataFrame) -> pd.DataFrame:
-    conteo = (
-        df_aumentado.groupby("articulo")
-        .size()
-        .reset_index(name="cantidad_ejemplos")
-        .sort_values("cantidad_ejemplos", ascending=False)
-    )
-    total = conteo["cantidad_ejemplos"].sum()
-    conteo["porcentaje_del_total"] = (conteo["cantidad_ejemplos"] / total * 100).round(2)
-
-    # marca artículos con muy pocos ejemplos, que van a rendir peor en el
-    # fine-tuning y conviene reforzar con más scraping o más parafraseo
-    conteo["alerta_pocos_ejemplos"] = conteo["cantidad_ejemplos"] < 5
-
-    return conteo
-
-
-def main():
-    faltantes = [p for p in (PARES_ORIGINALES_PATH, PARES_AUMENTADOS_PATH, SINONIMOS_PATH) if not os.path.exists(p)]
-    if faltantes:
-        print("Faltan archivos previos, corré antes:")
-        for f in faltantes:
-            print(f"  - {f}")
-        print("(extract_pairs.py y augment_pairs.py, en ese orden)")
-        return
-
-    df_originales = cargar_jsonl_como_df(PARES_ORIGINALES_PATH)
-    df_aumentados = cargar_jsonl_como_df(PARES_AUMENTADOS_PATH)
-    df_sinonimos = cargar_sinonimos_como_df(SINONIMOS_PATH)
-    df_estadisticas = calcular_estadisticas(df_aumentados)
-
-    with pd.ExcelWriter(OUT_XLSX, engine="openpyxl") as writer:
-        df_originales.to_excel(writer, sheet_name="Pares_originales", index=False)
-        df_aumentados.to_excel(writer, sheet_name="Pares_aumentados", index=False)
-        df_sinonimos.to_excel(writer, sheet_name="Sinonimos", index=False)
-        df_estadisticas.to_excel(writer, sheet_name="Estadisticas", index=False)
-
-    print(f"Dataset exportado a: {os.path.abspath(OUT_XLSX)}")
-    print(f"  - Pares_originales:  {len(df_originales)} filas")
-    print(f"  - Pares_aumentados:  {len(df_aumentados)} filas")
-    print(f"  - Sinonimos:         {len(df_sinonimos)} términos")
-    print(f"  - Estadisticas:      {len(df_estadisticas)} artículos distintos")
-
-    articulos_con_pocos = df_estadisticas["alerta_pocos_ejemplos"].sum()
-    if articulos_con_pocos:
-        print(
-            f"\n[!] {articulos_con_pocos} artículos tienen menos de 5 ejemplos. "
-            "Revisá la hoja 'Estadisticas' — esos artículos van a rendir peor "
-            "en el fine-tuning. Opciones: scrapear más casos que los mencionen, "
-            "o aumentar VARIANTES_POR_PAR en augment_pairs.py solo para esos."
-        )
-
-
-if __name__ == "__main__":
-    main()
+if __name__=='__main__':
+    p=argparse.ArgumentParser();p.add_argument('--run-dir',required=True);a=p.parse_args();export(a.run_dir)

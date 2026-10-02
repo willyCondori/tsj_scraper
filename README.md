@@ -1,138 +1,80 @@
-# Scraper de jurisprudencia penal — TSJ Bolivia (vía API directa)
+# TSJ scraper corregido
 
-Construye un dataset propio de pares **(hechos del caso → artículo del
-Código Penal citado)** a partir de resoluciones públicas de Materia Penal
-del Tribunal Supremo de Justicia, consultando **directamente la API**
-que usa `genesis.tsj.bo` (encontrada inspeccionando el tráfico de red del
-sitio con DevTools).
+Esta carpeta es independiente del proyecto original. No incluye los 21.697 JSON ni los datasets antiguos. Conserva el catálogo recibido; artículos sin entrada CP pasan a revisión y no se reasignan a otra norma.
 
-Es standalone: no toca el backend Django ni el modelo `Hecho`.
+## Error del checkpoint
 
-## Por qué API directa y no Playwright
+El código original devuelve `(numero, ruta)` pero lo lee como `(ruta, numero)`. La copia `Modelo_fin_checkpoint_corregido.ipynb` devuelve siempre `(ruta, numero)`, incluido `(None, 0)`. Conserva tu entrenamiento anterior. Los pesos guardados por época no contienen todo el estado del optimizador.
 
-La primera versión de este proyecto scrapeaba el sitio con un navegador
-headless (Playwright), porque `genesis.tsj.bo` es una SPA. Inspeccionando
-la pestaña Network del navegador encontramos que el sitio en realidad
-llama a una API REST (`apigenesis.tsj.bo`) que devuelve JSON limpio.
-Consultar esa API directo con `requests` es mucho más simple, rápido y
-estable — sin navegador, sin selectores CSS frágiles, sin esperas de
-renderizado.
+`Modelo_fin_corregido.ipynb` usa el pipeline nuevo y Trainer. Necesita subir esta carpeta y el run a Google Drive. Ajusta PROJECT_DIR y MI_RUN en su celda de configuración. Usa una carpeta de modelo nueva; opcionalmente INITIAL_MODEL puede apuntar a pesos antiguos para una nueva corrida, no para reanudar épocas anteriores.
 
-## Instalación
+## Preparar datos en Windows
 
-```bash
-cd tsj_scraper
-python -m venv env
-source env/bin/activate     # Windows: env\Scripts\activate
-pip install -r requirements.txt
+Desde esta carpeta:
+
+```powershell
+python -m pip install -r requirements.txt
+python run_pipeline.py --raw-dir "C:\Users\kiro\Downloads\tsj_scraper (1)\tsj_scraper\data\raw" --run-name dataset_v3
 ```
 
-Mucho más liviano que antes: ya no hace falta `playwright install chromium`.
+La salida queda en `data/processed/runs/dataset_v3`. Un nombre existente produce error para evitar sobrescribirlo.
 
-## Uso — en orden
+Para generar el Excel de revisión desde ese mismo run:
 
-### 1. Scrapear resoluciones de Materia Penal
-
-```bash
-python scraper_api.py
+```powershell
+python export_excel.py --run-dir data/processed/runs/dataset_v3
 ```
 
-Qué hace:
-- Llama a `POST /api/v1/resoluciones/busqueda_avanzada` filtrando por
-  `idMateria: 1` (Penal), que trae todas las salas penales juntas (Sala
-  Penal, Sala Penal 1, Sala Penal 2, Sala Penal Liquidadora).
-- Pagina automáticamente por todos los resultados.
-- Para cada resolución del listado, llama a
-  `GET /api/v1/resoluciones/{id}` para bajar el texto completo del fallo.
-- Guarda un JSON por resolución en `data/raw/`.
-- Es reanudable: si lo cortás y lo corrés de nuevo, no vuelve a bajar lo
-  que ya tiene guardado.
+El Excel incluye todos los pares elegibles, `split`, evidencia de cita, offsets, estado de revisión y estadísticas por artículo/split. `Muestra_revision` contiene hasta 1.000 descartados, distribuidos por motivo, para inspección; todos los descartados se conservan en `pares_revision.jsonl`. Si revisas etiquetas en Excel, debes trasladarlas al JSONL antes de entrenar: el entrenador consume JSONL. El notebook compatible antiguo sí consume el Excel antiguo.
 
-**Recomendación para la primera corrida**: al final del archivo
-`scraper_api.py` hay una línea comentada `# main(max_paginas=2)`.
-Descomentala (y comentá el `main()` de abajo) para tu primera prueba —
-así bajás solo ~100 resoluciones y confirmás que todo funciona antes de
-lanzar la corrida completa (puede haber varios cientos de páginas).
+Se genera:
 
-El delay entre requests (`DELAY_ENTRE_REQUESTS = 1.5` segundos en el
-script) es a propósito — es un servidor público de gobierno, no hay que
-saturarlo.
+- `pares_candidatos.jsonl`: todas las citas extraídas, con evidencia y offsets del texto limpio.
+- `pares_entrenamiento.jsonl`: candidatos fácticos/mixtos con artículo en catálogo, deduplicados.
+- `pares_aumentados.jsonl`: originales con split; sin paráfrasis automáticas por defecto.
+- `pares_revision.jsonl`: contenido dudoso o sin catálogo CP; preservado para revisión.
+- `pares_duplicados.jsonl` y `errores_extraccion.jsonl`: trazabilidad de exclusiones y fallos.
+- `catalogo_cp.json`, `manifest.json`: catálogo usado, hashes, configuración y recuentos.
 
-### 2. Generar los pares de entrenamiento
+Las etiquetas iniciales siguen siendo supervisión débil. El filtro no demuestra que la cita corresponda al hecho ni distingue automáticamente acusación, condena, absolución y precedente. Revisar antes de usarlo para conclusiones jurídicas.
 
-```bash
-python extract_pairs.py
+Los grupos unen transitivamente fuentes, documentos y textos idénticos antes de deduplicar; 80/10/10 por hash estable. Esto no detecta todas las paráfrasis o expedientes relacionados. Validación/test conservan originales. Los hechos con varias etiquetas conocidas se conservan para evaluación y se excluyen de entrenamiento de un único positivo con MNRL.
+
+También se agrupa por `nro_expediente` cuando tiene año, y se conservan fecha de emisión y forma de resolución. Los expedientes con nombres incompatibles aún requieren revisión. `data/reference/politica_dataset.json` separa 24 etiquetas de reglas generales de esta tarea y las guarda en Revision. No modifica el catálogo ni elimina todos los artículos de numeración baja.
+
+Para añadir variantes, edita `data/reference/sinonimos_aprobados.json` con sustituciones semánticas revisadas y marca las filas aprobadas en `pares_entrenamiento.jsonl`. Después:
+
+```powershell
+python augment_pairs.py --run-dir data/processed/runs/dataset_v3 --synonyms data/reference/sinonimos_aprobados.json
 ```
 
-Extrae de cada resolución:
-- El fragmento de **hechos** (heurística basada en marcadores típicos:
-  "CONSIDERANDO", "POR TANTO", etc. — revisable/ajustable).
-- Los **artículos del Código Penal citados** (regex).
-- De regalo, el campo `procesos` que ya trae la propia API (ej. "Robo
-  Agravado y Hurto") — esto es más confiable que adivinar el tipo de
-  delito por palabras clave, y se guarda como `tipo_proceso` en cada par.
+Solo aumenta filas aprobadas de train. Nunca vuelve a dividir después del aumento.
 
-Salidas en `data/processed/`:
-- `pares_entrenamiento.jsonl`
-- `pares_revision.csv` — **revisá una muestra a mano** antes de confiar
-  en el dataset.
+## Entrenar localmente o en Colab
 
-### 3. Aumentar con sinónimos jurídicos
+Se recomienda Colab con GPU y Python 3.11/3.12. En un entorno nuevo:
 
-```bash
-python augment_pairs.py
+```powershell
+python -m pip install -r requirements-training.txt
+python finetune_embeddings.py --run-dir data/processed/runs/dataset_v3 --output-dir modelos/dataset_v3_256
 ```
 
-Genera variantes parafraseadas (intento↔tentativa, hurto↔sustracción,
-etc.) usando `data/reference/sinonimos_juridicos.json`, y agrega
-negativos difíciles por categoría de delito (usando el `tipo_proceso`
-real cuando está disponible). Ver comentarios en el propio script para
-más detalle.
+Añade `--approved-only` para entrenar/evaluar únicamente ejemplos revisados. Si un split queda vacío, detiene el entrenamiento. Añade `--initial-model RUTA` solo para comenzar una corrida nueva desde pesos anteriores. Cambiar datos o configuración requiere otra carpeta de salida.
 
-Salida: `data/processed/pares_aumentados.jsonl`
+El entrenamiento usa batches sin duplicados de anclas/positivos, una corrida de cuatro épocas, checkpoints con optimizador/scheduler y evaluación de recuperación contra todo el catálogo CP disponible. Guarda métricas y distribución de tokens de hechos y textos de artículos. No modifica el catálogo ni elimina nombres de delitos automáticamente.
 
-### 4. Exportar a Excel para revisión
+## Descargar resoluciones nuevas, opcional
 
-```bash
-python export_excel.py
+```powershell
+python scraper_api.py --max-pages 2 --out-dir data/raw
 ```
 
-Salida: `data/processed/dataset_completo.xlsx` con hojas
-`Pares_originales`, `Pares_aumentados`, `Sinonimos`, `Estadisticas`.
+La consulta y headers se conservan del scraper recibido. La disponibilidad actual de la API no se ha comprobado. Se añadió validación de JSON existentes, guardado atómico y reintentos de 429.
 
-### 5. Fine-tuning (cuando el dataset esté validado)
+## Verificación
 
-```bash
-python finetune_embeddings.py
+```powershell
+python -m unittest discover -s tests -v
 ```
 
-Necesita que armes `articulos_codigo_penal.json` (mapeo número de
-artículo → texto) desde tu catálogo `Articulo` existente en Django.
-
-## Sobre la API
-
-- **Base**: `https://apigenesis.tsj.bo/api/v1`
-- **Listado**: `POST /resoluciones/busqueda_avanzada`
-- **Detalle**: `GET /resoluciones/{id}`
-- **Catálogos útiles** (por si querés filtrar distinto):
-  `GET /catalogos/materias` (Penal = id 1),
-  `GET /catalogos/salas` (Sala Penal = id 24, Sala Penal 1 = id 2,
-  Sala Penal 2 = id 5012, Sala Penal Liquidadora = id 4)
-- Headers `apikey` y `username` son valores públicos usados por el propio
-  frontend del sitio (visibles en su JS), no son credenciales privadas,
-  pero **podrían cambiar en el futuro** si el TSJ actualiza el sitio —
-  si algún día el scraper empieza a devolver 401/403, hay que volver a
-  inspeccionar el tráfico de red y actualizar `HEADERS` en
-  `scraper_api.py`.
-
-## Consideraciones
-
-- **Volumen**: la búsqueda por Materia Penal devolvió miles de
-  resultados en las pruebas — bastante más que suficiente para un
-  dataset de tesis. No hace falta bajar todo; podés limitar con
-  `max_paginas` según cuánto tiempo/volumen quieras.
-- **Calidad > cantidad**: seguí revisando `pares_revision.csv` con
-  atención — la heurística de "hechos" y la regex de artículos van a
-  tener ruido en fallos con estructura distinta a la esperada.
-- **Ética/legal**: información pública, uso académico. Respetá el
-  rate-limit y no satures el servidor del Órgano Judicial.
+Fuentes de API: https://www.sbert.net/docs/sentence_transformer/training_overview.html y https://www.sbert.net/docs/package_reference/base/sampler.html
