@@ -32,3 +32,6 @@ Para negativos revisados: query_id (fingerprint de hechos), estado_revision=`apr
 5. Recuperación híbrida y adaptación de dominio son experimentos independientes, no mejoras demostradas.
 
 No se afirma un aumento de accuracy/F1 antes de medirlo. No se cambia a E5.
+
+## Estado histórico
+Este documento describe v5/MPNet. La versión seleccionada actualmente usa E5 base y v6; consultar README.md y Entrenamiento_final_E5_base.ipynb.

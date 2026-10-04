@@ -39,7 +39,7 @@ def fact_blocks(text):
                        'senales_facticas':factual,'senales_procesales':procedural,'prioridad':score})
     return blocks
 
-def section_candidates(data,max_blocks=4):
+def section_candidates(data,max_blocks=4,overlap_first=False):
     text=clean_document(data.get('contenido'));citations=extraer_articulos_citados(text)
     if not citations:return []
     masked,_=prepare_context(text);blocks=sorted(fact_blocks(text),key=lambda b:(-b['prioridad'],b['inicio']))[:max_blocks]
@@ -48,8 +48,9 @@ def section_candidates(data,max_blocks=4):
         facts=normalize_text(masked[block['inicio']:block['fin']])
         if len(facts)<100:continue
         # Cercanía es evidencia propuesta, nunca prueba de aplicabilidad.
-        nearest=sorted(citations,key=lambda c: min(abs(c['inicio']-block['fin']),abs(c['fin']-block['inicio'])))
         distance=lambda c: max(block['inicio']-c['fin'],c['inicio']-block['fin'],0)
+        # En v6 una cita dentro del bloque tiene distancia cero y precede a las externas.
+        nearest=sorted(citations,key=distance if overlap_first else lambda c: min(abs(c['inicio']-block['fin']),abs(c['fin']-block['inicio'])))
         anchor=nearest[0]
         associated=[c for c in nearest if c['inicio']==anchor['inicio']]
         for citation in associated:

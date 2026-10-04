@@ -1,0 +1,193 @@
+{
+  "procedencia": "Salida de Colab facilitada por el usuario; comparación controlada de v6",
+  "fecha_documentacion": "2026-10-03",
+  "split": "validation",
+  "test_evaluado_en_esta_prueba": false,
+  "modelo": "intfloat/multilingual-e5-base",
+  "dataset_version": "v6",
+  "dataset_sha256": "b3405bfd8b7ba6bdd9b5235a2c03fdd4f69a4a786330a4e7b3f1f8f39cb85067",
+  "catalog_sha256": "38d315a66885497b5b0061caa405b5ba35a048ae531f20d19f155b1e30e5d0f3",
+  "referencia": {
+    "mrr": 0.8858024691358024,
+    "accuracy@1": 0.875,
+    "ndcg@10": 0.8872280478377748,
+    "recall@1": 0.8125,
+    "precision@1": 0.875,
+    "recall@3": 0.875,
+    "precision@3": 0.33333333333333326,
+    "recall@5": 0.875,
+    "precision@5": 0.20000000000000004,
+    "macro_article_recall@3": 0.8333333333333334,
+    "f1_micro_top1": 0.8235294117647058,
+    "precision_micro_top1": 0.875,
+    "recall_micro_top1": 0.7777777777777778,
+    "f1_macro_top1": 0.6556776556776556,
+    "precision_macro_top1": 0.6730769230769231,
+    "recall_macro_top1": 0.6538461538461539,
+    "f1_weighted_top1": 0.7724867724867724,
+    "precision_weighted_top1": 0.7916666666666666,
+    "recall_weighted_top1": 0.7777777777777778,
+    "por_expediente": {
+      "expedientes": 12,
+      "consultas": 16,
+      "accuracy_top1_por_expediente": 0.8333333333333334,
+      "f1_macro_por_expediente": 0.6512820512820512,
+      "f1_micro_por_expediente": 0.7692307692307693,
+      "f1_weighted_por_expediente": 0.7095238095238096
+    },
+    "queries": 16,
+    "candidates": 444,
+    "por_articulo_recall@3": {
+      "337": {
+        "soporte_queries": 3,
+        "recall@3": 1.0
+      },
+      "203": {
+        "soporte_queries": 2,
+        "recall@3": 1.0
+      },
+      "200": {
+        "soporte_queries": 1,
+        "recall@3": 1.0
+      },
+      "8": {
+        "soporte_queries": 1,
+        "recall@3": 1.0
+      },
+      "357": {
+        "soporte_queries": 1,
+        "recall@3": 1.0
+      },
+      "251": {
+        "soporte_queries": 1,
+        "recall@3": 0.0
+      },
+      "199": {
+        "soporte_queries": 1,
+        "recall@3": 1.0
+      },
+      "135": {
+        "soporte_queries": 1,
+        "recall@3": 0.0
+      },
+      "335": {
+        "soporte_queries": 1,
+        "recall@3": 1.0
+      },
+      "186": {
+        "soporte_queries": 4,
+        "recall@3": 1.0
+      },
+      "14": {
+        "soporte_queries": 1,
+        "recall@3": 1.0
+      },
+      "312": {
+        "soporte_queries": 1,
+        "recall@3": 1.0
+      }
+    }
+  },
+  "candidato": {
+    "mrr": 0.8598246402877698,
+    "accuracy@1": 0.8125,
+    "ndcg@10": 0.8738329437995649,
+    "recall@1": 0.75,
+    "precision@1": 0.8125,
+    "recall@3": 0.875,
+    "precision@3": 0.33333333333333326,
+    "recall@5": 0.9375,
+    "precision@5": 0.21250000000000008,
+    "macro_article_recall@3": 0.8333333333333334,
+    "f1_micro_top1": 0.7647058823529411,
+    "precision_micro_top1": 0.8125,
+    "recall_micro_top1": 0.7222222222222222,
+    "f1_macro_top1": 0.5111111111111111,
+    "precision_macro_top1": 0.5333333333333333,
+    "recall_macro_top1": 0.5,
+    "f1_weighted_top1": 0.7407407407407407,
+    "precision_weighted_top1": 0.7777777777777778,
+    "recall_weighted_top1": 0.7222222222222222,
+    "por_expediente": {
+      "expedientes": 12,
+      "consultas": 16,
+      "accuracy_top1_por_expediente": 0.75,
+      "f1_macro_por_expediente": 0.5111111111111111,
+      "f1_micro_por_expediente": 0.6923076923076923,
+      "f1_weighted_por_expediente": 0.6666666666666666
+    },
+    "queries": 16,
+    "candidates": 444,
+    "por_articulo_recall@3": {
+      "337": {
+        "soporte_queries": 3,
+        "recall@3": 1.0
+      },
+      "203": {
+        "soporte_queries": 2,
+        "recall@3": 1.0
+      },
+      "200": {
+        "soporte_queries": 1,
+        "recall@3": 1.0
+      },
+      "8": {
+        "soporte_queries": 1,
+        "recall@3": 1.0
+      },
+      "357": {
+        "soporte_queries": 1,
+        "recall@3": 1.0
+      },
+      "251": {
+        "soporte_queries": 1,
+        "recall@3": 0.0
+      },
+      "199": {
+        "soporte_queries": 1,
+        "recall@3": 1.0
+      },
+      "135": {
+        "soporte_queries": 1,
+        "recall@3": 0.0
+      },
+      "335": {
+        "soporte_queries": 1,
+        "recall@3": 1.0
+      },
+      "186": {
+        "soporte_queries": 4,
+        "recall@3": 1.0
+      },
+      "14": {
+        "soporte_queries": 1,
+        "recall@3": 1.0
+      },
+      "312": {
+        "soporte_queries": 1,
+        "recall@3": 1.0
+      }
+    },
+    "cohortes": {
+      "solo_positivos_vistos": {
+        "queries": 12,
+        "accuracy@1": 0.75
+      },
+      "con_positivos_no_vistos": {
+        "queries": 4,
+        "accuracy@1": 1.0
+      }
+    }
+  },
+  "decision": {
+    "seleccion": "referencia",
+    "checkpoint_seleccionado": "/content/tsj_e5_base_v6_mejoras/lr_2e-05_seed_42/checkpoint-126",
+    "motivos": [
+      "F1 macro no mejora",
+      "accuracy@1 disminuye",
+      "F1 macro por expediente disminuye"
+    ],
+    "validacion": "original v6; decisión exploratoria, no test final",
+    "guardado_final_autorizado_por_codigo": false
+  }
+}
