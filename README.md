@@ -36,22 +36,30 @@ El flujo básico es:
 
 **Una cita no demuestra aplicabilidad.** Puede pertenecer a la acusación, absolución, condena, un precedente o un argumento rechazado. Por ello las etiquetas del v6 son **supervisión débil** y tienen revisión pendiente. El entrenamiento aprende estas asociaciones; no las convierte en verdades jurídicas.
 
+## Descargar el dataset final
+
+[Descargar datasetFinalDerecho_v6.zip](https://raw.githubusercontent.com/willyCondori/tsj_scraper/master/datasets/datasetFinalDerecho_v6.zip). El ZIP contiene la carpeta `datasetFinalDerecho/` completa: 31 archivos, incluyendo JSONL, catálogo, manifest, Excel, fuentes y comparación conservadora. No incluye v7 ni variantes de limpieza fallidas.
+
+Extraer esa carpeta en Mi unidad de Drive. Si ya existe, conservar una copia de respaldo y comprobar los hashes antes de sustituirla; evitar que Drive cree `datasetFinalDerecho (2)`. El notebook final busca la carpeta exacta `datasetFinalDerecho`.
+
+La integridad del ZIP está registrada en `datasets/datasetFinalDerecho_v6.zip.sha256` y la de todos sus archivos en `datasets/manifest_paquete_v6.json`. La publicación del paquete no significa que las etiquetas se hayan aprobado jurídicamente.
+
 ## 3. Dataset usado en el entrenamiento final
 
-El notebook consume la carpeta de Drive `Mi unidad/datasetFinalDerecho`, concretamente `pares_aumentados.jsonl` y `catalogo_cp.json`.
+El notebook consume la carpeta de Drive `/datasetFinalDerecho`, concretamente `pares_aumentados.jsonl` y `catalogo_cp.json`.
 
-| Elemento | Cantidad |
-|---|---:|
-| Pares totales | 368 |
-| Pares train | 327 |
-| Consultas diferentes en train | 267 |
-| Artículos con ejemplos train | 68 |
-| Pares validation | 18 |
-| Consultas validation | 16 |
-| Expedientes de validation | 12 |
-| Pares test | 23 |
-| Consultas test | 21 |
-| Artículos candidatos del catálogo | 444 |
+| Elemento                            | Cantidad |
+| ----------------------------------- | -------: |
+| Pares totales                       |      368 |
+| Pares train                         |      327 |
+| Consultas diferentes en train       |      267 |
+| Artículos con ejemplos train       |       68 |
+| Pares validation                    |       18 |
+| Consultas validation                |       16 |
+| Expedientes de validation           |       12 |
+| Pares test                          |       23 |
+| Consultas test                      |       21 |
+| Artículos candidatos del catálogo |      444 |
 
 V4 aportaba 300 pares: 259 train, 18 validation y 23 test, con catálogo de 376 artículos. V6 añadió 68 pares débiles de train y 68 entradas de catálogo obtenidas de una fuente oficial. Validation/test se conservaron. El dataset final utiliza la variante ampliada v6; la carpeta `comparacion_conservadora` conserva otra variante y no es el input final. La ampliación del catálogo cambia la dificultad de recuperación: no comparar sus métricas directamente con un catálogo menor.
 
@@ -67,50 +75,50 @@ Ejemplo esquemático: un relato sobre una conducta documental puede tener positi
 
 ### Diccionario de columnas de los pares
 
-| Campo | Significado |
-|---|---|
-| `hechos` | Texto utilizado como consulta; puede conservar ruido procesal en v6. |
-| `articulo` | Clave de artículo CP, por ejemplo `251` o `252 bis`; etiqueta conocida débil. |
-| `norma` | Norma de la etiqueta; el catálogo final de entrenamiento es CP. |
-| `articulo_texto` | Texto del artículo presente en el catálogo exacto de esa corrida. |
-| `fuente_id` | Identificador de la resolución del TSJ. |
-| `fuente_url` | Enlace de procedencia, cuando está disponible. |
-| `nro_resolucion`, `nro_expediente` | Resolución y expediente; ayudan a rastrear y agrupar casos. |
-| `fecha_emision`, `sala`, `materia`, `tipo_proceso` | Metadatos del documento; algunos pueden ser nulos. |
-| `resultado_resolucion` | Forma/resultado reportado por la fuente; no sustituye verificar cada conducta. |
-| `documento_hash` | Huella del documento normalizado para trazabilidad y duplicados. |
-| `cita_original`, `cita_inicio`, `cita_fin` | Evidencia literal y offsets de la cita en el documento limpio. |
-| `hechos_inicio`, `hechos_fin`, `seccion` | Posiciones/sección de propuestas por bloques, cuando existen. |
-| `evidencia_cita`, `papel_cita`, `distancia_cita` | Contexto, rol heurístico y distancia entre hecho y cita en propuestas. |
-| `tipo_contenido`, señales fácticas/procesales | Indicadores de reglas para clasificación de texto. |
-| `estado_revision` | Pendiente/aprobado; pendiente no se convierte en aprobado al entrenar. |
-| `grupo_id`, `split` | Grupo del caso y partición guardada; no se recalculan al entrenar. |
-| `tipo`, `parent_id`, `metodo`, `transformacion` | Procedencia y relación con el original, según la etapa. |
-| `candidate_id`, `nivel_seleccion`, `supervision` | Identidad y trazabilidad de propuestas incorporadas en v6. |
+| Campo                                                      | Significado                                                                        |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `hechos`                                                 | Texto utilizado como consulta; puede conservar ruido procesal en v6.               |
+| `articulo`                                               | Clave de artículo CP, por ejemplo`251` o `252 bis`; etiqueta conocida débil. |
+| `norma`                                                  | Norma de la etiqueta; el catálogo final de entrenamiento es CP.                   |
+| `articulo_texto`                                         | Texto del artículo presente en el catálogo exacto de esa corrida.                |
+| `fuente_id`                                              | Identificador de la resolución del TSJ.                                           |
+| `fuente_url`                                             | Enlace de procedencia, cuando está disponible.                                    |
+| `nro_resolucion`, `nro_expediente`                     | Resolución y expediente; ayudan a rastrear y agrupar casos.                       |
+| `fecha_emision`, `sala`, `materia`, `tipo_proceso` | Metadatos del documento; algunos pueden ser nulos.                                 |
+| `resultado_resolucion`                                   | Forma/resultado reportado por la fuente; no sustituye verificar cada conducta.     |
+| `documento_hash`                                         | Huella del documento normalizado para trazabilidad y duplicados.                   |
+| `cita_original`, `cita_inicio`, `cita_fin`           | Evidencia literal y offsets de la cita en el documento limpio.                     |
+| `hechos_inicio`, `hechos_fin`, `seccion`             | Posiciones/sección de propuestas por bloques, cuando existen.                     |
+| `evidencia_cita`, `papel_cita`, `distancia_cita`     | Contexto, rol heurístico y distancia entre hecho y cita en propuestas.            |
+| `tipo_contenido`, señales fácticas/procesales          | Indicadores de reglas para clasificación de texto.                                |
+| `estado_revision`                                        | Pendiente/aprobado; pendiente no se convierte en aprobado al entrenar.             |
+| `grupo_id`, `split`                                    | Grupo del caso y partición guardada; no se recalculan al entrenar.                |
+| `tipo`, `parent_id`, `metodo`, `transformacion`    | Procedencia y relación con el original, según la etapa.                          |
+| `candidate_id`, `nivel_seleccion`, `supervision`     | Identidad y trazabilidad de propuestas incorporadas en v6.                         |
 
 No todas las filas tienen todas las columnas: el esquema conserva la procedencia de originales y adiciones. Una ausencia no debe rellenarse inventando evidencia.
 
 ### Archivos y formatos
 
-| Archivo/carpeta | Función |
-|---|---|
-| `pares_entrenamiento.jsonl` | Pares base/elegibles de la versión; referencia de construcción. |
-| `pares_aumentados.jsonl` | Input final exacto consumido por el entrenador. |
-| `catalogo_cp.json` | Mapa artículo → texto; los 444 candidatos se evalúan completos. |
-| `manifest.json` | Cantidades, configuración, procedencia y hashes del dataset/catálogo. |
-| `propuestas_secciones.jsonl` | Bloques candidatos extraídos; no aprobados automáticamente. |
-| `nuevos_pares_pendientes.jsonl` | Posibles ampliaciones que requieren revisión. |
-| `cola_revision_prioritaria.jsonl` | Propuestas priorizadas para inspección. |
-| `plantilla_revisiones.jsonl` | Campos para aprobar/rechazar con revisor y justificación. |
-| `errores_extraccion.jsonl` | Fallos de lectura/extracción; no es entrenamiento. |
-| `catalogo_adiciones_fuente.jsonl` | Procedencia documental/páginas de entradas nuevas. |
-| `auditoria_v6.json` | Recuentos, exclusiones y controles de la construcción. |
-| `estadisticas_articulos.csv` | Distribución y soporte por artículo/split. |
-| `revision_muestra.html` | Vista legible de propuestas y evidencias. |
-| Excel `.xlsx`/`.xlsm` | Vista de inspección/presentación; el notebook final no lo consume. |
-| `fuentes/` | Documentos de procedencia; incluye el PDF del CP usado. |
-| `comparacion_conservadora/` | Variante de comparación, no el dataset final entrenado. |
-| `codigos/` | Copia de scripts vinculados a una entrega. |
+| Archivo/carpeta                     | Función                                                                |
+| ----------------------------------- | ----------------------------------------------------------------------- |
+| `pares_entrenamiento.jsonl`       | Pares base/elegibles de la versión; referencia de construcción.       |
+| `pares_aumentados.jsonl`          | Input final exacto consumido por el entrenador.                         |
+| `catalogo_cp.json`                | Mapa artículo → texto; los 444 candidatos se evalúan completos.      |
+| `manifest.json`                   | Cantidades, configuración, procedencia y hashes del dataset/catálogo. |
+| `propuestas_secciones.jsonl`      | Bloques candidatos extraídos; no aprobados automáticamente.           |
+| `nuevos_pares_pendientes.jsonl`   | Posibles ampliaciones que requieren revisión.                          |
+| `cola_revision_prioritaria.jsonl` | Propuestas priorizadas para inspección.                                |
+| `plantilla_revisiones.jsonl`      | Campos para aprobar/rechazar con revisor y justificación.              |
+| `errores_extraccion.jsonl`        | Fallos de lectura/extracción; no es entrenamiento.                     |
+| `catalogo_adiciones_fuente.jsonl` | Procedencia documental/páginas de entradas nuevas.                     |
+| `auditoria_v6.json`               | Recuentos, exclusiones y controles de la construcción.                 |
+| `estadisticas_articulos.csv`      | Distribución y soporte por artículo/split.                            |
+| `revision_muestra.html`           | Vista legible de propuestas y evidencias.                               |
+| Excel`.xlsx`/`.xlsm`            | Vista de inspección/presentación; el notebook final no lo consume.    |
+| `fuentes/`                        | Documentos de procedencia; incluye el PDF del CP usado.                 |
+| `comparacion_conservadora/`       | Variante de comparación, no el dataset final entrenado.                |
+| `codigos/`                        | Copia de scripts vinculados a una entrega.                              |
 
 JSONL contiene un objeto JSON por línea; JSON puede contener un mapa, lista o manifiesto completo. Editar Excel no cambia los JSONL: las revisiones deben incorporarse con un procedimiento trazable.
 
@@ -148,21 +156,21 @@ La entrega v7 final separada procesó 21.697 documentos: 6.123 hechos candidatos
 8. Evaluar cada época contra **los 444 artículos**, seleccionar por F1 macro top1 de validation y detener tras tres épocas sin mejora.
 9. Recargar el mejor checkpoint y exportar rankings/métricas. Test y guardado de pesos finales en Drive permanecen desactivados por defecto.
 
-| Parámetro | Valor |
-|---|---|
-| Modelo | `intfloat/multilingual-e5-base` |
-| Batch size | 16 |
-| Learning rate | `2e-5` |
-| Longitud máxima | 512 tokens |
-| Seed | 42 |
-| Épocas máximas | 12 |
-| Paciencia de early stopping | 3 |
-| Escala de pérdida | 20 |
-| Weight decay | 0.01 |
-| Warmup | 10 % |
-| Selección | F1 macro top1, validation original |
-| Precisión | FP16 en GPU; FP32 sin CUDA |
-| Gradient checkpointing | Activado en esta receta |
+| Parámetro                  | Valor                              |
+| --------------------------- | ---------------------------------- |
+| Modelo                      | `intfloat/multilingual-e5-base`  |
+| Batch size                  | 16                                 |
+| Learning rate               | `2e-5`                           |
+| Longitud máxima            | 512 tokens                         |
+| Seed                        | 42                                 |
+| Épocas máximas            | 12                                 |
+| Paciencia de early stopping | 3                                  |
+| Escala de pérdida          | 20                                 |
+| Weight decay                | 0.01                               |
+| Warmup                      | 10 %                               |
+| Selección                  | F1 macro top1, validation original |
+| Precisión                  | FP16 en GPU; FP32 sin CUDA         |
+| Gradient checkpointing      | Activado en esta receta            |
 
 La pérdida utiliza embeddings normalizados y log-softmax de similitudes escaladas. Distribuye el objetivo entre positivos conocidos presentes entre los candidatos del batch. Los otros candidatos funcionan como negativos de entrenamiento bajo supervisión débil; pueden existir positivos jurídicos aún no anotados.
 
@@ -191,27 +199,27 @@ python entrenamiento_final/train_e5_base.py --run-dir RUTA_DATASET_V6 --output-d
 
 La recuperación calcula embeddings normalizados para consultas/artículos y los ordena por producto escalar, equivalente a similitud coseno. La similitud no es una probabilidad de aplicabilidad jurídica.
 
-| Métrica | Interpretación |
-|---|---|
-| Accuracy@1 | Fracción de consultas cuyo primer artículo pertenece a los positivos conocidos. |
-| Recall@k | Proporción de positivos conocidos recuperados entre los primeros k, promediada por consulta. |
-| Precision@k | Fracción de resultados recuperados que están anotados como positivos conocidos. |
-| MRR | Premia que el primer positivo aparezca pronto en el ranking. |
-| NDCG@10 | Premia posiciones tempranas de positivos dentro de los diez primeros. |
-| F1 micro top1 | Combina errores y aciertos de etiquetas acumulados; predice un artículo por consulta. |
-| F1 macro top1 | Promedio por etiqueta sobre la unión de etiquetas verdaderas y predichas activas. |
-| F1 weighted top1 | Promedio por etiqueta ponderado por soporte verdadero. |
-| Métricas por expediente | Ponderan cada consulta por 1/número de consultas de su grupo, dando igual peso a los casos. |
+| Métrica                 | Interpretación                                                                               |
+| ------------------------ | --------------------------------------------------------------------------------------------- |
+| Accuracy@1               | Fracción de consultas cuyo primer artículo pertenece a los positivos conocidos.             |
+| Recall@k                 | Proporción de positivos conocidos recuperados entre los primeros k, promediada por consulta. |
+| Precision@k              | Fracción de resultados recuperados que están anotados como positivos conocidos.             |
+| MRR                      | Premia que el primer positivo aparezca pronto en el ranking.                                  |
+| NDCG@10                  | Premia posiciones tempranas de positivos dentro de los diez primeros.                         |
+| F1 micro top1            | Combina errores y aciertos de etiquetas acumulados; predice un artículo por consulta.        |
+| F1 macro top1            | Promedio por etiqueta sobre la unión de etiquetas verdaderas y predichas activas.            |
+| F1 weighted top1         | Promedio por etiqueta ponderado por soporte verdadero.                                        |
+| Métricas por expediente | Ponderan cada consulta por 1/número de consultas de su grupo, dando igual peso a los casos.  |
 
 Con consultas multietiqueta, acertar el primer artículo puede dar accuracy=1 para esa consulta pero no recall=1, porque quedan otros positivos sin devolver. Por eso accuracy y F1 no son intercambiables. Cuatro fragmentos de validation provienen del mismo expediente de cheques; por expediente se evita que dominen el promedio.
 
 ### Resultados reportados por el usuario en Colab
 
-| Prueba sobre validation original | F1 macro top1 | Accuracy@1 | Recall@3 | Recall@5 |
-|---|---:|---:|---:|---:|
-| **E5 base elegido, checkpoint-126** | **0.655678** | **0.875** | 0.875 | 0.875 |
-| Selección por expediente, checkpoint-84 | 0.619048 | 0.875 | **0.9375** | 0.9375 |
-| Limpieza mínima de encabezados | 0.511111 | 0.8125 | 0.875 | 0.9375 |
+| Prueba sobre validation original          |      F1 macro top1 |      Accuracy@1 |         Recall@3 | Recall@5 |
+| ----------------------------------------- | -----------------: | --------------: | ---------------: | -------: |
+| **E5 base elegido, checkpoint-126** | **0.655678** | **0.875** |            0.875 |    0.875 |
+| Selección por expediente, checkpoint-84  |           0.619048 |           0.875 | **0.9375** |   0.9375 |
+| Limpieza mínima de encabezados           |           0.511111 |          0.8125 |            0.875 |   0.9375 |
 
 El ganador tuvo F1 micro=0.823529, F1 weighted=0.772487, MRR=0.885802 y NDCG@10=0.887228. Accuracy ponderada por expediente=0.833333, F1 macro ponderado por expediente=0.651282. El checkpoint ganador corresponde a la época 6; la búsqueda previa se detuvo en la 9. Estos datos son de **validación**, no de test.
 
@@ -223,7 +231,7 @@ El aviso de secuencias >512 surge al contar tokens sin truncarlos; al codificar 
 
 ## 7. Construcción y revisión reproducible
 
-El repositorio publica código y resultados agregados, no los 21.697 JSON, Excel ni pesos. `data/` está ignorado. Para reconstruir se necesitan localmente los JSON crudos, el catálogo, política de referencias y, para v6, sus versiones previas y PDF oficial utilizado. No inventar ni descargar otra versión del catálogo y afirmar que reproduce los mismos hashes.
+El repositorio publica código, resultados agregados y el ZIP del dataset final v6 (incluye Excel y evidencias de esa entrega). No publica los 21.697 JSON crudos ni pesos. `data/` sigue ignorado; el paquete se guarda en `datasets/`. Para reconstruir se necesitan localmente los JSON crudos, el catálogo, política de referencias y, para v6, sus versiones previas y PDF oficial utilizado. No inventar ni descargar otra versión del catálogo y afirmar que reproduce los mismos hashes.
 
 ```powershell
 python run_pipeline.py --raw-dir data/raw --run-name dataset_v4_nuevo
